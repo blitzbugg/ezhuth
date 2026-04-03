@@ -27,11 +27,8 @@ class RoomManager {
 
     addUser(roomId, userId) {
         const room = this.getRoom(roomId);
-        
-        // Canceled any pending room cleanup timers
         cleanupService.cancel(roomId);
 
-        // Assign color based on current user count
         const userCount = Object.keys(room.users).length;
         const userColor = this.COLORS[userCount % this.COLORS.length];
         
@@ -45,7 +42,6 @@ class RoomManager {
 
         delete room.users[userId];
 
-        // If room is empty, schedule it for cleanup
         if (Object.keys(room.users).length === 0) {
             cleanupService.schedule(roomId, () => {
                 this.rooms.delete(roomId);
@@ -59,6 +55,14 @@ class RoomManager {
     addStroke(roomId, stroke) {
         const room = this.getRoom(roomId);
         if (room) {
+            // If stroke has an ID and already exists, update it instead of pushing
+            if (stroke.id) {
+                const index = room.strokes.findIndex(s => s.id === stroke.id);
+                if (index !== -1) {
+                    room.strokes[index] = { ...room.strokes[index], ...stroke };
+                    return true;
+                }
+            }
             room.strokes.push(stroke);
             return true;
         }

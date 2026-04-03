@@ -68,20 +68,24 @@ export const handleSocketEvents = (io, socket) => {
         socket.to(roomId).emit(SOCKET_EVENTS.CURSOR, { ...data, userId: socket.userId });
     });
 
-    socket.on(SOCKET_EVENTS.CLEAR, (passedRoomId) => {
-        const roomId = passedRoomId || socket.roomId;
-        console.log(`[SOCKET] Clear requested for room: ${roomId}`);
+    socket.on(SOCKET_EVENTS.CLEAR, (idOrRoomId) => {
+        const roomId = socket.roomId;
+        if (!roomId) return;
         
-        if (!roomId) {
-            console.log('[SOCKET] Clear failed: No roomId provided');
-            return;
-        }
-
-        if (roomManager.clearRoom(roomId)) {
-            console.log(`[SOCKET] History cleared for room: ${roomId}`);
-            io.to(roomId).emit(SOCKET_EVENTS.CLEAR); // Broadcast to all clients including sender
+        // If the ID passed is different from the current roomId, it's likely an element ID
+        if (idOrRoomId && idOrRoomId !== roomId) {
+            const room = roomManager.getRoom(roomId);
+            if (room) {
+                room.strokes = room.strokes.filter(s => s.id !== idOrRoomId);
+                io.to(roomId).emit(SOCKET_EVENTS.CLEAR, idOrRoomId);
+                console.log(`[SOCKET] Element ${idOrRoomId} deleted in room ${roomId}`);
+            }
         } else {
-            console.log(`[SOCKET] Clear failed: Room ${roomId} not found`);
+            // Clear whole room
+            if (roomManager.clearRoom(roomId)) {
+                console.log(`[SOCKET] History cleared for room: ${roomId}`);
+                io.to(roomId).emit(SOCKET_EVENTS.CLEAR);
+            }
         }
     });
 
