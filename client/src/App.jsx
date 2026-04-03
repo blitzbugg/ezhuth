@@ -56,8 +56,15 @@ const styles = {
   },
   navLogo: {
     display: 'flex',
-    flexDirection: 'column',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: '12px',
     lineHeight: 1,
+  },
+  navLogoText: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1px',
   },
   navLogoName: {
     fontFamily: '"Playfair Display", "Lora", Georgia, serif',
@@ -65,13 +72,14 @@ const styles = {
     fontWeight: 700,
     color: token.accent,
     letterSpacing: '-0.02em',
+    margin: 0,
   },
   navLogoTagline: {
     fontFamily: '"Noto Serif Malayalam", "Lora", serif',
     fontSize: '0.68rem',
     color: token.greenMid,
     letterSpacing: '0.01em',
-    marginTop: '2px',
+    margin: 0,
   },
   navBtn: {
     fontFamily: '"Lora", Georgia, serif',
@@ -442,8 +450,11 @@ function Home() {
         {/* ── Navbar ─────────────────────────────────────────── */}
         <nav style={styles.nav}>
           <div style={styles.navLogo}>
-            <span style={styles.navLogoName}>Ezhuth</span>
-            <span style={styles.navLogoTagline}>എഴുതാം ഒരുമിച്ച്</span>
+            <img src="logo.png" alt="Ezhuth Logo" srcset="" height="40" width="40" style={{ display: 'block', margin: 0, flexShrink: 0 }}/>
+            <div style={styles.navLogoText}>
+              <span style={styles.navLogoName}>Ezhuth</span>
+              <span style={styles.navLogoTagline}>എഴുതാം ഒരുമിച്ച്</span>
+            </div>
           </div>
           <button
             style={styles.navBtn}
