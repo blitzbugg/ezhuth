@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import Room from './Room';
@@ -188,6 +189,62 @@ const styles = {
     cursor: 'pointer',
     letterSpacing: '0.01em',
     transition: 'border-color 0.2s, background 0.2s, transform 0.15s',
+  },
+  joinSection: {
+    marginTop: '48px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '16px',
+    width: '100%',
+    maxWidth: '320px',
+  },
+  joinLabel: {
+    fontFamily: '"Lato", sans-serif',
+    fontSize: '0.85rem',
+    fontWeight: 600,
+    color: token.inkLight,
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+  },
+  joinInputWrapper: {
+    display: 'flex',
+    gap: '8px',
+    width: '100%',
+  },
+  joinInput: {
+    flex: 1,
+    fontFamily: '"Lato", sans-serif',
+    background: '#fff',
+    border: `1.5px solid ${token.green}22`,
+    borderRadius: '100px',
+    padding: '12px 24px',
+    fontSize: '0.95rem',
+    fontWeight: 700,
+    letterSpacing: '0.2em',
+    textAlign: 'center',
+    outline: 'none',
+    transition: 'border-color 0.2s, box-shadow 0.2s',
+    color: token.accent,
+  },
+  joinBtn: {
+    background: token.greenFaint,
+    color: token.accent,
+    border: `1.5px solid ${token.green}33`,
+    borderRadius: '100px',
+    padding: '12px 24px',
+    fontSize: '0.9rem',
+    fontWeight: 700,
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  },
+  errorMsg: {
+    fontFamily: '"Lato", sans-serif',
+    fontSize: '0.8rem',
+    color: '#ef4444',
+    fontWeight: 600,
+    marginTop: '4px',
+    animation: 'shake 0.4s ease-in-out',
   },
 
   // Whiteboard preview card
@@ -402,8 +459,39 @@ const features = [
 // ─── Home Component ───────────────────────────────────────────────────────────
 function Home() {
   const navigate = useNavigate();
+  const [joinCode, setJoinCode] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleStart = () => navigate(`/room/${uuidv4()}`);
+  
+  const handleJoin = async (e) => {
+    e.preventDefault();
+    const code = joinCode.trim().toUpperCase();
+    if (code.length < 6) {
+        setError('Code must be 6 characters');
+        return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+        const baseUrl = import.meta.env.VITE_SOCKET_URL || "http://localhost:3001";
+        const res = await fetch(`${baseUrl}/validate/${code}`);
+        const data = await res.json();
+
+        if (data.valid) {
+            navigate(`/room/${code}`);
+        } else {
+            setError('Room not found or expired');
+        }
+    } catch (err) {
+        setError('Connection error. Try again.');
+    } finally {
+        setLoading(false);
+    }
+  };
 
   const hoverCard = (e) => {
     e.currentTarget.style.transform = 'translateY(-5px)';
@@ -513,13 +601,40 @@ function Home() {
             </a>
           </div>
 
+          {/* Join Section */}
+          <div style={styles.joinSection}>
+            <span style={styles.joinLabel}>Or join existing</span>
+            <form onSubmit={handleJoin} style={styles.joinInputWrapper}>
+              <input
+                type="text"
+                placeholder="ABCDEF"
+                maxLength={6}
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                style={styles.joinInput}
+                onFocus={(e) => { e.target.style.borderColor = token.green; e.target.style.boxShadow = `0 0 0 4px ${token.green}11`; }}
+                onBlur={(e) => { e.target.style.borderColor = `${token.green}22`; e.target.style.boxShadow = 'none'; }}
+              />
+              <button 
+                type="submit" 
+                disabled={loading}
+                style={{ ...styles.joinBtn, opacity: loading ? 0.6 : 1 }}
+                onMouseEnter={(e) => { if (!loading) { e.target.style.background = token.greenSoft; e.target.style.transform = 'translateY(-2px)'; } }}
+                onMouseLeave={(e) => { if (!loading) { e.target.style.background = token.greenFaint; e.target.style.transform = 'translateY(0)'; } }}
+              >
+                {loading ? '...' : 'Join'}
+              </button>
+            </form>
+            {error && <span style={styles.errorMsg}>{error}</span>}
+          </div>
+
           {/* Whiteboard preview card */}
           <div style={styles.boardCard}>
             <div style={styles.boardBar}>
               <span style={styles.boardDot('#ff5f57')} />
               <span style={styles.boardDot('#febc2e')} />
               <span style={styles.boardDot('#28c840')} />
-              <span style={styles.boardTitle}>ezhuth.app / room / drawing</span>
+              <span style={styles.boardTitle}>ezhuth.app / room / AEFGKO</span>
             </div>
             <div style={styles.boardBody}>
               <svg style={styles.sketchSvg} viewBox="0 0 620 200" fill="none" xmlns="http://www.w3.org/2000/svg">

@@ -3,13 +3,26 @@ import { useDrawStore } from '../store/useDrawStore';
 import { Link2, Check } from 'lucide-react';
 
 export default function ShareBar() {
-  const { users, userColor } = useDrawStore();
+  const { users, userColor, shortCode } = useDrawStore();
   const [copied, setCopied] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(window.location.href);
+    const shareUrl = shortCode 
+      ? `${window.location.origin}/room/${shortCode}`
+      : window.location.href;
+      
+    navigator.clipboard.writeText(shareUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCopyCode = (e) => {
+    e.stopPropagation();
+    if (!shortCode) return;
+    navigator.clipboard.writeText(shortCode);
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 2000);
   };
 
   const userEntries = Object.entries(users);
@@ -19,6 +32,24 @@ export default function ShareBar() {
 
   return (
     <div className="fixed top-4 right-4 z-10 flex items-center gap-3">
+      {/* ROOM CODE DISPLAY */}
+      {shortCode && (
+        <button 
+          onClick={handleCopyCode}
+          title="Copy room code"
+          className="bg-white/90 backdrop-blur-md border border-[#e5e5e3] px-3 py-1.5 rounded-full shadow-sm 
+                     flex items-center gap-2 group cursor-pointer hover:bg-white transition-all 
+                     hover:border-[#2d6a4f]33 active:scale-95 outline-none"
+        >
+          <span className={`text-[10px] uppercase tracking-wider font-bold transition-colors ${codeCopied ? 'text-green-500' : 'text-gray-400'}`}>
+            {codeCopied ? "Copied!" : "Code"}
+          </span>
+          <span className={`text-sm font-mono font-bold tracking-widest transition-colors ${codeCopied ? 'text-green-600' : 'text-[#2d6a4f]'}`}>
+            {shortCode}
+          </span>
+        </button>
+      )}
+
       {/* PRESENCE DOTS */}
       <div className="flex items-center -space-x-1.5">
         {displayUsers.map(([userId, user]) => (

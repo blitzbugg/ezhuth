@@ -7,7 +7,8 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import { handleSocketEvents } from './sockets/handlers.js'; // Paths corrected for src/ folder
+import { handleSocketEvents } from './sockets/handlers.js'; 
+import { roomManager } from './rooms/manager.js';
 
 const app = express();
 app.use(cors());
@@ -30,6 +31,13 @@ const PORT = process.env.PORT || 3001;
 
 httpServer.listen(PORT, () => {
     console.log(`[SERVER] Collaborative Whiteboard server running on port ${PORT}`);
+});
+
+// APIs
+app.get('/validate/:id', (req, res) => {
+    const { id } = req.params;
+    const isValid = roomManager.exists(id);
+    res.json({ valid: isValid });
 });
 
 // Health check endpoint

@@ -15,20 +15,23 @@ export const handleSocketEvents = (io, socket) => {
      * 2. emit('join-room', roomId, userId) - legacy positional
      */
     socket.on(SOCKET_EVENTS.JOIN_ROOM, (data, legacyUserId) => {
-        let roomId, userId;
+        let inputRoomId, userId;
         
         if (typeof data === 'object' && data !== null) {
-            roomId = data.roomId;
+            inputRoomId = data.roomId;
             userId = data.userId;
         } else {
-            roomId = data;
+            inputRoomId = data;
             userId = legacyUserId;
         }
         
-        if (!roomId || !userId) {
+        if (!inputRoomId || !userId) {
             console.log(`[SOCKET] Join failed for ${socket.id}: Missing roomId or userId`);
             return;
         }
+
+        const roomId = roomManager.resolveRoomId(inputRoomId);
+        const shortCode = roomManager.getOrCreateShortCode(roomId);
 
         socket.join(roomId);
         socket.roomId = roomId;
@@ -38,12 +41,13 @@ export const handleSocketEvents = (io, socket) => {
         const roomUsers = roomManager.getRoomUsers(roomId);
         const strokes = roomManager.getStrokeHistory(roomId);
 
-        console.log(`[SOCKET] User ${userId} joined room ${roomId}`);
+        console.log(`[SOCKET] User ${userId} joined room ${roomId} (Code: ${shortCode})`);
 
         // Send context to joining client
         socket.emit(SOCKET_EVENTS.YOUR_COLOR, { color: userColor });
         socket.emit(SOCKET_EVENTS.ROOM_USERS, roomUsers);
         socket.emit(SOCKET_EVENTS.STROKE_HISTORY, strokes);
+        socket.emit('room-short-code', { shortCode });
 
         // Notify others in the room
         socket.to(roomId).emit(SOCKET_EVENTS.USER_JOINED, { userId, color: userColor });
@@ -72,8 +76,10 @@ export const handleSocketEvents = (io, socket) => {
         const roomId = socket.roomId;
         if (!roomId) return;
         
+        const resolvedId = roomManager.resolveRoomId(idOrRoomId);
+
         // If the ID passed is different from the current roomId, it's likely an element ID
-        if (idOrRoomId && idOrRoomId !== roomId) {
+        if (idOrRoomId && resolvedId !== roomId) {
             const room = roomManager.getRoom(roomId);
             if (room) {
                 room.strokes = room.strokes.filter(s => s.id !== idOrRoomId);

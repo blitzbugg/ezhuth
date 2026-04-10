@@ -11,6 +11,7 @@ export const useDrawStore = create((set) => ({
   cursors: {}, // { userId: { x, y, color, label } }
   userColor: "", // assigned by server on join
   users: {}, // { userId: { color } } for presence dots
+  shortCode: "", // 6-digit access code mapping
 
   setColor: (color) => set((state) => ({ 
     color, 
@@ -20,6 +21,7 @@ export const useDrawStore = create((set) => ({
   setTool: (tool) => set({ tool, selectedIds: [] }),
   setPan: (pan) => set({ pan }),
   setZoom: (zoom) => set({ zoom }),
+  setShortCode: (shortCode) => set({ shortCode }),
   
   setSelectedIds: (selectedIds) => set({ selectedIds }),
   

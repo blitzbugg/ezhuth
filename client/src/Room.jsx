@@ -20,7 +20,7 @@ export default function Room() {
     elements, addElement, updateElement, deleteElements, setElements,
     pan, setPan, selectedIds, setSelectedIds,
     updateCursor,
-    addUser, removeUser, setUsers, setUserColor
+    addUser, removeUser, setUsers, setUserColor, setShortCode
   } = useDrawStore();
 
   const canvasCommittedRef = useRef(null);
@@ -75,6 +75,7 @@ export default function Room() {
     s.emit('join-room', roomId, userId);
     s.on('your-color', (data) => setUserColor(data.color));
     s.on('room-users', (users) => setUsers(users));
+    s.on('room-short-code', ({ shortCode }) => setShortCode(shortCode));
     s.on('user-joined', (data) => addUser(data.userId, data.color));
     s.on('user-left', (data) => removeUser(data.userId));
     s.on('stroke-history', (history) => setElements(history));

@@ -7,51 +7,73 @@ Ezhuth is a real-time collaborative whiteboard where multiple people can draw si
 
 ---
 
-## Features
+---
+
+## 🛠️ Features
 
 - **Real-time drawing sync** — strokes appear on all connected clients within milliseconds
+- **6-Digit Room Codes** — Every board has a unique, easy-to-read **6-digit code** (e.g., `AEFGKO`) for quick entry.
 - **Late-joiner state replay** — join a room mid-session and see the full canvas history instantly
 - **Live cursors** — see where other users are drawing in real time
 - **Presence indicators** — colored dots show who's in the room
 - **Toolbar** — color swatches, brush size, eraser, and clear canvas
-- **Room URLs** — every room has a unique, shareable link. No sign-up required.
 - **Optimistic rendering** — your strokes draw instantly, before the server even responds
 
 ---
 
-## Tech Stack
+## 🧱 Tech Stack
 
 | Layer | Technology |
 |---|---|
 | Frontend | React (Vite), HTML5 Canvas API, Zustand |
-| Styling | Tailwind CSS v4 |
+| Styling | Tailwindcss |
 | Realtime | Socket.IO (WebSocket) |
 | Backend | Node.js, Express |
-| Room IDs | UUID v4 |
+| Room IDs | UUID v4 + **6-Digit Short Code Mapping** |
 
 ---
 
-## Architecture
+## 🏗️ Architecture
 
-Ezhuth is built as a **real-time event relay system**, not a traditional CRUD app. The server never touches the canvas — it only routes drawing events between clients in the same room.
+Ezhuth is built as a **real-time event relay system**. The server maintains a canonical state of all active rooms and maps user-friendly short codes to internal session IDs.
 
-```
-Client A (draws)
-    ↓  emit("draw")
-Socket.IO Server
-    ↓  socket.to(roomId).emit("draw")
-Client B + Client C (render stroke)
+### System Overview
+
+```mermaid
+graph TD
+    subgraph "Frontend (React + Canvas)"
+        UI[User Interface] --> Store[Zustand Store]
+        UI --> Engine[Canvas Engine]
+        Engine -- "EMIT: draw" --> Socket
+    end
+
+    subgraph "Backend (Node + Socket.io)"
+        Socket[Socket Server]
+        Handlers[Socket Handlers]
+        RM[Room Manager]
+        Cleanup[Cleanup Service]
+        
+        Socket <--> Handlers
+        Handlers <--> RM
+        RM <--> Cleanup
+    end
+
+    subgraph "Room Resolution"
+        RM -- "UUID <--> ShortCode" --> Mapping[(In-Memory Mapping)]
+    end
+
+    Mapping -- "Validate Code" --> UI
 ```
 
 ### Key architectural decisions
+
+**Short Code Mapping** — Rooms are identified by a canonical UUID v4, but users interact with a 6-digit alphanumeric code. The server's `RoomManager` resolves all incoming codes to their canonical IDs before joining users to a shared broadcast channel.
 
 **Two-canvas pattern** — a `canvas-committed` layer holds all completed strokes, and a `canvas-active` layer holds only the stroke currently being drawn. This avoids redrawing the entire history on every mouse move.
 
 **Optimistic rendering** — strokes are drawn locally before being emitted to the server. The server echo is ignored on the originating client. Drawing feels instant regardless of network latency.
 
 **Late-joiner sync** — the server maintains an ordered in-memory stroke log per room. When a new client joins, the full history is replayed on their canvas. A pending queue handles strokes that arrive during replay.
-
-**Emit throttling** — network events are emitted at most once per 30ms. Local rendering stays at 60fps. These two rates are intentionally decoupled.
 
 ---
 
@@ -131,17 +153,18 @@ npm run build --prefix client
 
 ### Joining a room
 
-1. Visit the landing page and click **Create room**
-2. A UUID v4 is generated and you're navigated to `/room/:roomId`
-3. Share that URL with anyone — they join the same canvas instantly
+1. Visit the landing page and click **Start Drawing**.
+2. A unique **6-digit code** (e.g., `AEFGKO`) is generated for your board.
+3. Share the code or the short URL with anyone.
+4. Others can join by entering the code on the homepage, or via the direct link.
 
 ### Drawing flow
 
-1. Mouse move captured on `canvas-active`
-2. Stroke drawn locally on `canvas-active` immediately (optimistic)
-3. Stroke event emitted to server (throttled to 30ms)
-4. Server appends to room stroke log and relays to all other clients
-5. Other clients draw the stroke on their `canvas-committed` layer
+1. Interaction captured on `canvas-active`.
+2. Stroke drawn locally on `canvas-active` immediately (optimistic).
+3. Stroke event emitted to server (throttled).
+4. Server resolves the room (via UUID or short code), appends to log, and relays to peers.
+5. Other clients render the stroke on their `canvas-committed` layer.
 
 ### Late-joiner sync
 
